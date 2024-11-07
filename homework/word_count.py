@@ -24,14 +24,15 @@ import string
 #     ('text2.txt'. 'hypotheses.')
 #   ]
 #
-def load_input(input_directory: str):
+def load_input(input_directory):
     """Funcion load_input"""
     sequence = []
-    files = glob.glob(os.path.join( input_directory, '*'))
+    files = glob.glob(f"{input_directory}/*")
     with fileinput.input(files=files) as f:
         for line in f:
             sequence.append((fileinput.filename(), line))
     return sequence
+
 
 
 #
@@ -40,8 +41,9 @@ def load_input(input_directory: str):
 # realiza el preprocesamiento de las líneas de texto,
 #
 def line_preprocessing(sequence):
+    """Line Preprocessing"""
     sequence = [
-        (key, value.translate(str.maketrans("", "", string.punctuation)).lower().strip())
+        (key, value.translate(str.maketrans("", "", string.punctuation)).lower().strip().strip())
         for key, value in sequence
     ]
     return sequence
@@ -61,6 +63,11 @@ def line_preprocessing(sequence):
 #
 def mapper(sequence):
     """Mapper"""
+    # result = []
+    # for _, value in sequence:
+    #     for word in value.split():
+    #         result.append( (word, 1) )  
+    # return result
     return [(word, 1) for _, value in sequence for word in value.split()]
 
 
@@ -86,12 +93,13 @@ def shuffle_and_sort(sequence):
 # ejemplo, la reducción indica cuantas veces aparece la palabra analytics en el
 # texto.
 #
-
 def reducer(sequence):
     """Reducer"""
     result = {}
     for key, value in sequence:
-        result[key] = result.get(key, 0) + value
+        if key not in result.keys():
+            result[key] = 0
+        result[key] += value
     return list(result.items())
 
 
@@ -99,13 +107,13 @@ def reducer(sequence):
 # Escriba la función create_ouptput_directory que recibe un nombre de
 # directorio y lo crea. Si el directorio existe, lo borra
 #
-def create_output_directory(output_directory):
+def create_ouptput_directory(output_directory):
     """Create Output Directory"""
-    if os.path.exists(os.path.join( output_directory)):
-        for file in glob.glob(os.path.join( output_directory, "*")):
+    if os.path.exists(output_directory):
+        for file in glob.glob(f"{output_directory}/*"):
             os.remove(file)
-        os.rmdir(os.path.join( output_directory))
-    os.makedirs(os.path.join( output_directory))
+        os.rmdir(output_directory)
+    os.makedirs(output_directory)
 
 
 #
@@ -118,10 +126,11 @@ def create_output_directory(output_directory):
 #
 def save_output(output_directory, sequence):
     """Save Output"""
-    with open(os.path.join(output_directory, 'part-00000'), "w", encoding="utf-8") as f:
+    with open(f"{output_directory}/part-00000", "w", encoding="utf-8") as f:
         for key, value in sequence:
             f.write(f"{key}\t{value}\n")
-
+            
+            
 
 #
 # La siguiente función crea un archivo llamado _SUCCESS en el directorio
@@ -129,30 +138,26 @@ def save_output(output_directory, sequence):
 #
 def create_marker(output_directory):
     """Create Marker"""
-    with open(os.path.join(output_directory,"_SUCCESS"), "w", encoding="utf-8") as f:
+    with open(f"{output_directory}/_SUCCESS", "w", encoding="utf-8") as f:
         f.write("")
 
-
-#
-# Escriba la función job, la cual orquesta las funciones anteriores.
-#
-#
-# Escriba la función job, la cual orquesta las funciones anteriores.
-#
+        
+        
 def run_job(input_directory, output_directory):
     """Job"""
-    lines = load_input(input_directory)
-    lines = line_preprocessing(lines)
-    lines = mapper(lines)
-    lines = shuffle_and_sort(lines)
-    lines = reducer(lines)
-    create_output_directory(output_directory)
-    save_output(output_directory, lines)
+    sequence = load_input(input_directory)
+    sequence = line_preprocessing(sequence)
+    sequence = mapper(sequence)
+    sequence = shuffle_and_sort(sequence)
+    sequence = reducer(sequence)
+    create_ouptput_directory(output_directory)
+    save_output(output_directory, sequence)
     create_marker(output_directory)
 
 
 if __name__ == "__main__":
     run_job(
-        "input",
-        "output",
+        "files/input",
+        "files/output",
     )
+  
