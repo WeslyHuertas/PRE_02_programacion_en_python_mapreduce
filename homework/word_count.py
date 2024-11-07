@@ -6,6 +6,7 @@ import fileinput
 import glob
 import os.path
 from itertools import groupby
+import string
 
 
 #
@@ -23,8 +24,14 @@ from itertools import groupby
 #     ('text2.txt'. 'hypotheses.')
 #   ]
 #
-def load_input(input_directory):
+def load_input(input_directory: str):
     """Funcion load_input"""
+    sequence = []
+    files = glob.glob(os.path.join( input_directory, '*'))
+    with fileinput.input(files=files) as f:
+        for line in f:
+            sequence.append((fileinput.filename(), line))
+    return sequence
 
 
 #
@@ -33,7 +40,11 @@ def load_input(input_directory):
 # realiza el preprocesamiento de las líneas de texto,
 #
 def line_preprocessing(sequence):
-    """Line Preprocessing"""
+    sequence = [
+        (key, value.translate(str.maketrans("", "", string.punctuation)).lower().strip())
+        for key, value in sequence
+    ]
+    return sequence
 
 
 #
@@ -50,6 +61,7 @@ def line_preprocessing(sequence):
 #
 def mapper(sequence):
     """Mapper"""
+    return [(word, 1) for _, value in sequence for word in value.split()]
 
 
 #
@@ -65,6 +77,7 @@ def mapper(sequence):
 #
 def shuffle_and_sort(sequence):
     """Shuffle and Sort"""
+    return sorted(sequence, key=lambda x: x[0])
 
 
 #
@@ -73,16 +86,26 @@ def shuffle_and_sort(sequence):
 # ejemplo, la reducción indica cuantas veces aparece la palabra analytics en el
 # texto.
 #
+
 def reducer(sequence):
     """Reducer"""
+    result = {}
+    for key, value in sequence:
+        result[key] = result.get(key, 0) + value
+    return list(result.items())
 
 
 #
 # Escriba la función create_ouptput_directory que recibe un nombre de
 # directorio y lo crea. Si el directorio existe, lo borra
 #
-def create_ouptput_directory(output_directory):
+def create_output_directory(output_directory):
     """Create Output Directory"""
+    if os.path.exists(os.path.join( output_directory)):
+        for file in glob.glob(os.path.join( output_directory, "*")):
+            os.remove(file)
+        os.rmdir(os.path.join( output_directory))
+    os.makedirs(os.path.join( output_directory))
 
 
 #
@@ -95,6 +118,9 @@ def create_ouptput_directory(output_directory):
 #
 def save_output(output_directory, sequence):
     """Save Output"""
+    with open(os.path.join(output_directory, 'part-00000'), "w", encoding="utf-8") as f:
+        for key, value in sequence:
+            f.write(f"{key}\t{value}\n")
 
 
 #
@@ -103,13 +129,26 @@ def save_output(output_directory, sequence):
 #
 def create_marker(output_directory):
     """Create Marker"""
+    with open(os.path.join(output_directory,"_SUCCESS"), "w", encoding="utf-8") as f:
+        f.write("")
 
 
 #
 # Escriba la función job, la cual orquesta las funciones anteriores.
 #
+#
+# Escriba la función job, la cual orquesta las funciones anteriores.
+#
 def run_job(input_directory, output_directory):
     """Job"""
+    lines = load_input(input_directory)
+    lines = line_preprocessing(lines)
+    lines = mapper(lines)
+    lines = shuffle_and_sort(lines)
+    lines = reducer(lines)
+    create_output_directory(output_directory)
+    save_output(output_directory, lines)
+    create_marker(output_directory)
 
 
 if __name__ == "__main__":
